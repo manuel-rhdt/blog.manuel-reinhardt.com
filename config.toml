@@ -1,0 +1,12 @@
+baseURL = "http://example.org/"
+languageCode = "en-us"
+title = "My New Hugo Site"
+
+theme = "simple-blog"
+themesDir = "themes"
+
+DefaultContentLanguage = "en"
+
+[params]
+about = "I'm a physics student and programmer based in Munich, Germany. My current interests include Rust, Static Site Generators and Font rasterization."
+profile_img = "/images/profile-pic.jpg"

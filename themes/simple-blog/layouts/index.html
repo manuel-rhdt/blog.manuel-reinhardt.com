@@ -1,0 +1,37 @@
+{{ define "main" }}
+<img src="/images/orange.jpg" alt="header" />
+
+<header>
+    <h1 id="logo">
+        {{ .Title }}
+    </h1>
+</header>
+
+<nav>
+    <ul>
+        <li>Home</li>
+        <li>About me</li>
+        <li>CV</li>
+    </ul>
+</nav>
+
+<article>
+    {{ .Content }}
+    <ul>
+        {{ range first 10 .Data.Pages }}
+        <li><a href="{{.Permalink}}">{{.Date.Format "2006-01-02"}} | {{.Title}}</a></li>
+        {{ end }}
+    </ul>
+</article>
+
+<aside class="panel">
+    <div class="primary-color">
+        <h1>About me</h1>
+        <h2 class="subtitle">Manuel Reinhardt</h2>
+    </div>
+    <img src="{{ .Site.Params.profile_img }}" alt="Profile Picture" />
+    <p class="primary-color light">
+        {{ .Site.Params.about }}
+    </p>
+</aside>
+{{ end }}

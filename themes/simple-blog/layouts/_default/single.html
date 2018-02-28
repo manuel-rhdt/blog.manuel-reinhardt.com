@@ -1,0 +1,25 @@
+{{ define "main" }}
+    <header>
+        <h1 id="logo">
+            {{ .Title }}
+        </h1>
+    </header>
+
+    <article class="right-vrule">
+        {{ .Content }}
+    </article>
+
+    <aside>
+        <div class="tile">
+            <h1 class="subtile">
+                About me:
+            </h1>
+            <div class="subtile">
+                Picture
+            </div>
+            <p class="subtile">
+                {{ .Site.Params.about }}
+            </p>
+        </div>
+    </aside>
+{{ end }}

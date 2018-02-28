@@ -1,0 +1,21 @@
+<head>
+    {{ .Hugo.Generator }}
+    <link href="https://fonts.googleapis.com/css?family=Lato:700,800|Oswald|Source+Sans+Pro:300,400,700" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body class="main-container">
+
+    {{ block "main" . }}
+    <!-- The part of the page that begins to differ between templates -->
+    {{ end }} 
+    
+    
+    {{ block "footer" . }}
+    <footer class="tile">
+        <p>© Manuel Reinhardt&nbsp;
+            <emph>2017</emph>
+        </p>
+    </footer>
+    {{ end }}
+</body>
