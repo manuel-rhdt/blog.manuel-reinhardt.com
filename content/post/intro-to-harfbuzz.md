@@ -146,6 +146,10 @@ HarfBuzz is designed to work with any underlying font support system by allowing
 ## Text and glyph buffers
 A `hb_buffer_t` serves a double role in HarfBuzz. It is needed in the central `hb_shape` function specifying the input text and after completion of shaping contains the positions and information of the resulting glyphs.
 
+# Conclusion
+
+I hope you liked the quick tour of HarfBuzz. 
+
 [harfbuzz]: https://www.freedesktop.org/wiki/Software/HarfBuzz/
 [harfbuzz-git]: https://github.com/behdad/harfbuzz
 [wiki-ot]: https://en.wikipedia.org/wiki/OpenType
