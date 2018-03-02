@@ -1,8 +1,8 @@
----
++++
 title: "Harfbuzz_rs"
 date: 2018-03-01T18:43:29+01:00
 draft: true
----
++++
 
 In this blogpost I'm going to share my experiences while trying to develop some rusty and safe bindings for HarfBuzz. Before jumping into the code side of things I want to give a brief outline of what HarfBuzz does.
 
