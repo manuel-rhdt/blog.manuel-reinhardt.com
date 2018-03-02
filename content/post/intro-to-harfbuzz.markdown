@@ -27,7 +27,9 @@ Now HarfBuzz comes into play. HarfBuzz usually is a part of a so-called _text st
 # The C API of HarfBuzz
 So, that's enough theory at least for the moment. We will now take a look at the functions and types that HarfBuzz provides us with. 
 
-HarfBuzz aims to be as portable as possible and exposes a C API for easy integration into any system. The API is also designed to be thread-safe with memory management done through atomic reference counting. Unfortunately the [API documentation](https://harfbuzz.github.io) of HarfBuzz is not very extensive and it is the reason for writing this article to provide a quick but useful introduction.
+HarfBuzz aims to be as portable as possible and exposes a C API for easy integration into any system. The API is also designed to be thread-safe with memory management done through atomic reference counting. Unfortunately the [API documentation](https://harfbuzz.github.io) of HarfBuzz is not very extensive and it is the reason for writing this article to provide a quick but useful introduction. Still you should consult the documentation a lot since the function names themselves are relatively self-explanatory and you get a good idea what this library is capable of and what is out of scope.
+
+It should also be mentioned that there exists a python wrapper for HarfBuzz that is maintained in the same repository as HarfBuzz itself.
 
 ## Overview of the shaping process
 The main function in HarfBuzz that "does all the work" is `hb_shape`. Its full signature reads
@@ -43,8 +45,11 @@ From it we can infer that to perform shaping we need to tell HarfBuzz
 
 - which font we want it to use
 - what text we want laid out (the `hb_buffer_t` argument is essentially a text buffer)
-- which (OpenType) features we want to activate
+- which (OpenType) features we want to activate.
 
+In the following sections I will talk about how to get a font and a buffer. The features are just a simple array of `hb_feature_t` struct elements that is pretty self-explanatory.
+
+What also remains to be seen is how this functions gives us the result of the shaping process (its return value is just `void`). But first some words about HarfBuzz's object oriented approach using memory management based on reference counting.
 
 ## Object system
 HarfBuzz' API mainly consists of a number of important structs and corresponding functions to create, mutate and destroy them. The object-orientedness of the library is reinforced through naming conventions. 
@@ -53,27 +58,47 @@ HarfBuzz' type and function names are in [snake_case][snake-case] and generally 
 
 Besides their own specific methods all classes define a few core methods for reference counting and for ensuring thread safety (or using the object oriented slang, they inherit them from a hypothetical `hb_object_t` class):
 
-### `hb_object_t` API
+### Object API
 
 Every object in Harfbuzz uses functions with the signature
 
 ```c
-hb_object_t *hb_object_create(void *);
+hb_object_t *hb_object_create(/* constructor arguments */);
 hb_object_destroy(hb_object_t *obj);
 ```
 
 for creating respectively destroying (i.e. decreasing reference count) itself. `hb_object` here and thereafter is a placeholder for any harfbuzz object name, so the actual functions are called e.g.
 
 ```c
-hb_font_t *hb_font_create(void *);
+hb_font_t *hb_font_create(hb_face_t *face);
 hb_font_destroy(hb_font_t *font);
 ```
 
-### Face
+## Blob
+
+Harfbuzz uses the `hb_blob_t` type to represent regions of memory that can be used for various tasks. The most important use of blobs is to create them for a font file and the use that blob to create `hb_face_t`s. Though somewhat out of date most of the design decisions made for `hb_blob_t` are described in [this mailing list post][api-design] (beware however that many changes to the API have been made since).
+
+## Face
 
 A face represents a single typeface that assigns a set of glyphs to unicode codepoints. An example is "Times New Roman Bold" (note that this includes only the bold glyphs even if the font file also contains other font shapes). A `hb_face_t` is most often created from a `hb_blob_t`, a type responsable for memory management in harfbuzz. A face is then needed to create `hb_font_t`s for shaping.
 
-### Font
+The main ways to create a `hb_face_t` are called
+```c
+// using a blob
+hb_face_t *hb_face_create (hb_blob_t *blob, unsigned int index);
+
+// using a function pointer that provides font table blobs
+hb_face_t *hb_face_create_for_tables (
+    hb_reference_table_func_t reference_table_func, 
+    void *user_data, 
+    hb_destroy_func_t destroy
+);
+```
+The first of these is used if you want to create a `hb_face_t` object directly from a font file that is loaded into memory. The `index` argument is needed because a single font file can contain various faces and you need to select which one you want (usually this number is provided by some font-selection library like fontconfig).
+
+The second constructor is preferable if you don't have a full in-memory copy of the font file however you can produce all font table data on demand. This could be the case e.g. if you are sanitizing or otherwise modifying font tables before use.
+
+## Font
 
 In HarfBuzz a font is the representation of a font face at a specific size e.g. Times New Roman Bold at 13pt. It is by far the most complex of HarfBuzz' types. If you want to shape any text in harfbuzz, you need to create a `hb_font_t` object. A typical and extensively commented font creation routine will look similar to the following:
 
@@ -81,7 +106,7 @@ In HarfBuzz a font is the representation of a font face at a specific size e.g. 
 hb_face_t *face;
 hb_font_t *font;
 
-face = hb_face_create_with_blob(/* some blob containing a font file */);
+face = hb_face_create(/* some blob containing a font file */);
 
 font = hb_font_create(face);
 
@@ -109,16 +134,16 @@ hb_font_destroy(font);
 
 Usually you create a font from a `hb_face_t` using the function `hb_font_t *hb_font_create(hb_face_t *face)` like shown here. The face then gets associated to the new font and can be retrieved using `hb_font_get_face`. Like all constructor functions `hb_font_create` returns a pointer to an internally allocated font that must be released with `hb_font_destroy` after it is no longer needed to avoid leaking memory.
 
-#### Font scale and ppem
+### Font scale and ppem
 Further properties of a `hb_font_t` are its scale and its ppem that are used to scale the glyphs to the correct size. A scale value of `13 << 6` may be interpreted as a fixed-point value where 13 is the standard EM-size of the font and the six left-shifts give us six bits of subpixel precision in the values that harfbuzz returns. For example if the advance width of some glyph was exactly one EM, then HarfBuzz would return the value you specified as the scaling value in that direction. The six bit shift is also the convention that FreeType uses for fractional pixel values. The PPEM value indicates how many _pixels_ fit inside an EM and is not that important as it (as far as I know) only affects fonts that include so-called [_device tables_][device_tables] to slightly improve positioning on screens with low resolution (which are becoming less and less common).
 
 You may set the scale as well as the ppem values to zero. This will tell HarfBuzz to do the shaping in the design coordinate system of the font without any scaling so you can apply your preferred scaling afterwards. This can often be the recommended method to use harfbuzz as no rounding errors are introduced during shaping and shaping can be performed independently of the font size. This will however turn off metric hinting which you may or may not want. For an excellent and thorough discussion of metric hinting and linear font scaling written by the author of HarfBuzz look [here][metric_hinting].
 
-#### Font functions and subclassing
+### Font functions and subclassing
 
 HarfBuzz is designed to work with any underlying font support system by allowing to set custom font functions on a font object. These font functions retrieve various properties of a font that are needed by HarfBuzz for the shaping process. Examples of these properties are the advance width of individual glyphs or the glyhp index corresponding to a specific unicode codepoint. 
 
-### `hb_buffer_t`
+## Text and glyph buffers
 A `hb_buffer_t` serves a double role in HarfBuzz. It is needed in the central `hb_shape` function specifying the input text and after completion of shaping contains the positions and information of the resulting glyphs.
 
 [harfbuzz]: https://www.freedesktop.org/wiki/Software/HarfBuzz/
@@ -135,7 +160,6 @@ A `hb_buffer_t` serves a double role in HarfBuzz. It is needed in the central `h
 [gpos]: https://www.microsoft.com/typography/otspec/gpos.htm
 [metric_hinting]: https://docs.google.com/document/d/1wpzgGMqXgit6FBVaO76epnnFC_rQPdVKswrDQWyqO1M/edit
 [device_tables]: https://docs.microsoft.com/de-de/typography/opentype/spec/chapter2#device-and-variationindex-tables
-
-# Footnotes
+[api-design]: https://mail.gnome.org/archives/gtk-i18n-list/2009-August/msg00025.html
 
 [^hb-home]: [HarfBuzz Website][harfbuzz]. The primary credit for the development of HarfBuzz goes to [Behdad Esfahbod](http://behdad.org) who designed most of its API and wrote almost all the code.
