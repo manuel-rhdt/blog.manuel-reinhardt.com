@@ -1,7 +1,6 @@
 +++
 title = "How I Created Bindings for HarfBuzz in Rust"
-date = 2018-03-02T13:50:29+01:00
-# tags = harbuzz text layout rust programming
+date = 2018-03-02T13:51:00+01:00
 +++
 
 In this post I want to introduce the HarfBuzz text shaping engine and give a quick overview over the most important parts in its API.
