@@ -1,6 +1,6 @@
 +++
 title = "How I Created Bindings for HarfBuzz in Rust"
-date = 2017-03-26
+date = 2018-03-02T13:50:29+01:00
 # tags = harbuzz text layout rust programming
 +++
 
